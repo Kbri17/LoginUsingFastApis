@@ -1,7 +1,12 @@
 from typing import Annotated
+from datetime import datetime,timedelta,timezone
 from fastapi import FastAPI, Request , Form , HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
+from jose import jwt, JWTError
+
+SECRET_KEY= "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxMjMsImV4cCI6MTY4ODAwMjQwMH0.M3kLfEaXToojPbxx2Vb7MxJhL4m0xP9Y4ZZ9e5k3QOo"
+TOKEN_SECOND_EXP = 20
 
 db_users = {
     "gregory" : {
@@ -33,7 +38,12 @@ def authenticate_user(password:str, password_plane:str):
         return True
     return False
 
-    
+def create_token(data:list):
+    data_token= data.copy()
+    data_token["exp"] = datetime.now(timezone.utc) + timedelta(seconds=TOKEN_SECOND_EXP)
+    token_jwt = jwt.encode(data_token, key=SECRET_KEY, algorithm="HS256")
+    return token_jwt
+
 
 @app.get("/", response_class=HTMLResponse)
 
@@ -64,7 +74,6 @@ def login(username: Annotated[str,Form()],password: Annotated[str,Form()]):
             detail="No authorization"
         )
     
-    return {
-        "username":username,
-        "password":password
-        }
+    token= create_token({"username": user_data["username"]})
+
+    return token
